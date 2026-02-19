@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Header -->
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Real-time Analysis</h1>
+            <p class="text-gray-500 mt-1">Follow the steps below to complete the assessment.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">Camera Active</span>
+        </div>
+    </div>
+
+    <!-- Steps Progress -->
+    <div class="flex items-center justify-center mb-12">
+        <div class="flex items-center w-full max-w-3xl">
+            <div class="flex-1 text-center" id="step1-indicator">
+                <div
+                    class="w-10 h-10 mx-auto bg-brand-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg ring-4 ring-brand-100">
+                    1</div>
+                <p class="mt-2 text-sm font-medium text-brand-600">Capture Face</p>
+            </div>
+            <div class="flex-1 h-1 bg-gray-200 mx-2 relative">
+                <div class="absolute inset-y-0 left-0 bg-brand-600 transition-all duration-500 w-0" id="progress-bar-1">
+                </div>
+            </div>
+            <div class="flex-1 text-center opacity-50 transition-opacity" id="step2-indicator">
+                <div
+                    class="w-10 h-10 mx-auto bg-gray-200 text-gray-600 rounded-full flex items-center justify-center font-bold text-lg">
+                    2</div>
+                <p class="mt-2 text-sm font-medium text-gray-600">Record Voice</p>
+            </div>
+            <div class="flex-1 h-1 bg-gray-200 mx-2 relative">
+                <div class="absolute inset-y-0 left-0 bg-brand-600 transition-all duration-500 w-0" id="progress-bar-2">
+                </div>
+            </div>
+            <div class="flex-1 text-center opacity-50 transition-opacity" id="step3-indicator">
+                <div
+                    class="w-10 h-10 mx-auto bg-gray-200 text-gray-600 rounded-full flex items-center justify-center font-bold text-lg">
+                    3</div>
+                <p class="mt-2 text-sm font-medium text-gray-600">Report</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 min-h-[500px] flex flex-col">
+
+        <!-- Step 1: Face Capture -->
+        <div id="step1-content"
+            class="p-8 flex-1 flex flex-col items-center justify-center text-center transition-opacity duration-300">
+
+            <div class="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg max-w-lg w-full text-left">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            <strong>Important:</strong> Please remove glasses for best results.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative w-full max-w-lg aspect-video bg-black rounded-xl overflow-hidden shadow-lg mb-6 group">
+                <video id="webcam" class="w-full h-full object-cover transform scale-x-[-1]" autoplay playsinline
+                    muted></video>
+                <canvas id="face-canvas" class="hidden w-full h-full object-cover"></canvas>
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div class="border-2 border-white/50 w-48 h-64 rounded-full border-dashed opacity-50"></div>
+                </div>
+                <p id="camera-status"
+                    class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white bg-black/50 px-3 py-1 rounded-full text-sm">
+                    Initializing Camera...</p>
+            </div>
+
+            <button onclick="captureFace()" class="hidden px-8 py-3 bg-brand-600 text-white rounded-full font-semibold">
+                Capture Photo
+            </button>
+            <p class="text-gray-500 italic animate-pulse">Position your face clearly. Capturing automatically...</p>
+        </div>
+
+        <!-- Step 2: Voice Recording -->
+        <div id="step2-content" class="hidden p-8 flex-1 flex flex-col items-center justify-center text-center">
+            <div class="w-full max-w-2xl bg-slate-50 rounded-xl p-6 mb-8 border border-slate-200">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">Please read the following text clearly:</h3>
+                <p class="text-gray-600 text-xl leading-relaxed italic font-serif" id="reading-text">
+                    "Life has its ups and downs, and today I'm feeling a mix of emotions.
+                    Sometimes I feel hopeful about the future and all the possibilities ahead.
+                    But there are moments when worry creeps in...
+                    Overall, I believe in taking one day at a time."
+                </p>
+
+                <div class="mt-4 flex justify-center space-x-2">
+                    <button class="text-sm px-3 py-1 rounded bg-white border hover:bg-gray-50 text-gray-600"
+                        onclick="changeLang('English')">English</button>
+                    <button class="text-sm px-3 py-1 rounded bg-white border hover:bg-gray-50 text-gray-600"
+                        onclick="changeLang('Hindi')">Hindi</button>
+                    <button class="text-sm px-3 py-1 rounded bg-white border hover:bg-gray-50 text-gray-600"
+                        onclick="changeLang('Tamil')">Tamil</button>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-6 mb-6">
+                <button id="record-btn" onclick="toggleRecording()"
+                    class="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg transition-all hover:scale-110 relative">
+                    <span class="absolute w-full h-full rounded-full bg-red-500 animate-ping opacity-75 hidden"
+                        id="record-ping"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                </button>
+                <div class="text-4xl font-mono text-gray-800 w-24" id="timer">00:00</div>
+            </div>
+            <p id="recording-status" class="text-gray-500">Click microphone to start recording</p>
+
+            <div class="w-full max-w-xs mb-6">
+                <label for="patient-name" class="block text-sm font-medium text-gray-700 mb-2">Patient Name</label>
+                <input type="text" id="patient-name" placeholder="Enter patient name"
+                    class="shadow-sm focus:ring-brand-500 focus:border-brand-500 block w-full sm:text-sm border-gray-300 rounded-md p-3 text-center"
+                    required>
+            </div>
+
+            <button id="next-btn-2" onclick="goToStep3()" disabled
+                class="mt-2 px-8 py-3 bg-gray-300 text-white rounded-full font-semibold text-lg transition-all pointer-events-none">
+                Generate Report &rarr;
+            </button>
+        </div>
+
+        <!-- Step 3: Processing -->
+        <div id="step3-content" class="hidden p-8 flex-1 flex flex-col items-center justify-center text-center">
+            <div class="loader mb-6"></div>
+            <h3 class="text-xl font-bold text-gray-900">Analysing Data...</h3>
+            <p class="text-gray-500 mt-2">Our AI is processing your facial expressions and voice patterns.</p>
+        </div>
+    </div>
+
+</div>
+
+<!-- Hidden inputs to store data -->
+<input type="hidden" id="face-data">
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/capture.js') }}"></script>
+{% endblock %}
