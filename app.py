@@ -36,14 +36,14 @@ def load_models():
         eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
         
         # Load Keras models if files exist
-        if os.path.exists("keras_Model.h5"):
-            gender_model = load_model("keras_Model.h5", compile=False)
+        if os.path.exists("keras_model.h5"):
+            gender_model = load_model("keras_model.h5", compile=False)
             print("✅ Gender Model loaded.")
         else:
             print("⚠️ Gender Model not found.")
 
-        if os.path.exists("keras_Modelemo.h5"):
-            emotion_model = load_model("keras_Modelemo.h5", compile=False)
+        if os.path.exists("keras_modelemo.h5"):
+            emotion_model = load_model("keras_modelemo.h5", compile=False)
             print("✅ Emotion Model loaded.")
         else:
             print("⚠️ Emotion Model not found.")
