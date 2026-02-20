@@ -5,7 +5,11 @@ import base64
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from datetime import datetime
-import os
+import contextlib
+import json
+import sys
+import gc
+import wave
 
 # Extreme Memory Optimization for Render Free Tier
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -13,10 +17,6 @@ os.environ['TF_NUM_INTEROP_THREADS'] = '1'
 os.environ['TF_NUM_INTRAOP_THREADS'] = '1'
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['MKL_NUM_THREADS'] = '1'
-import contextlib
-import json
-import sys
-import gc
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
