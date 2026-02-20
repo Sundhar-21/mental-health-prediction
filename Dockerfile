@@ -20,4 +20,4 @@ EXPOSE 5000
 
 ENV FLASK_APP=app.py
 
-CMD gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app
+CMD gunicorn --bind 0.0.0.0:$PORT --timeout 300 app:app
