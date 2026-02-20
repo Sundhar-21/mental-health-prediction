@@ -5,10 +5,9 @@ import base64
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from tf_keras.models import load_model, clone_model
-import wave
 import contextlib
 import json
+import sys
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -71,20 +70,30 @@ def get_gender_model():
     global gender_model
     if gender_model is None and os.path.exists("keras_model.h5"):
         try:
+            from tf_keras.models import load_model
+            print("⏳ Loading Gender Model (TensorFlow)...")
+            sys.stdout.flush()
             gender_model = load_model("keras_model.h5", compile=False)
             print("✅ Gender Model loaded.")
+            sys.stdout.flush()
         except Exception as e:
             print(f"❌ Error loading gender model: {e}")
+            sys.stdout.flush()
     return gender_model
 
 def get_emotion_model():
     global emotion_model
     if emotion_model is None and os.path.exists("keras_modelemo.h5"):
         try:
+            from tf_keras.models import load_model
+            print("⏳ Loading Emotion Model (TensorFlow)...")
+            sys.stdout.flush()
             emotion_model = load_model("keras_modelemo.h5", compile=False)
             print("✅ Emotion Model loaded.")
+            sys.stdout.flush()
         except Exception as e:
             print(f"❌ Error loading emotion model: {e}")
+            sys.stdout.flush()
     return emotion_model
 
 @app.route('/')
