@@ -114,6 +114,9 @@ def report_page():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
+
+    face_image_path = None
+    audio_file_path = None
     try:
         results = {
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -149,7 +152,11 @@ def analyze():
         results['patient_name'] = patient_name
 
         if face_image_path:
-            results['face_image_path'] = face_image_path
+            # Convert image to base64 for report display (since we delete the file)
+            with open(face_image_path, "rb") as image_file:
+                 encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            results['face_image_path'] = f"data:image/jpeg;base64,{encoded_string}"
+            
             face_results = analyze_face_image(face_image_path)
             results['face_analysis'] = face_results
         
@@ -176,6 +183,12 @@ def analyze():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # Cleanup temporary files
+        if face_image_path and os.path.exists(face_image_path):
+            os.remove(face_image_path)
+        if audio_file_path and os.path.exists(audio_file_path):
+            os.remove(audio_file_path)
 
 def analyze_face_image(image_path):
     """Analyze face image for gender and emotion"""

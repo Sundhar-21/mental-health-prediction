@@ -329,17 +329,24 @@
 
         // Image logic
         if (data.face_image_path) {
-            // Path handling for Windows/Unix compatibility
-            let imgPath = data.face_image_path.replace(/\\/g, '/');
+            let imgPath = data.face_image_path;
 
-            // Extract relative path from static
-            const staticIndex = imgPath.indexOf('static/');
-            if (staticIndex !== -1) {
-                imgPath = '/' + imgPath.substring(staticIndex);
-            }
-            // Ensure leading slash
-            if (!imgPath.startsWith('/')) {
-                imgPath = '/' + imgPath;
+            // Check if it's a base64 data URL
+            if (imgPath.startsWith('data:image')) {
+                // Use directly
+            } else {
+                // Path handling for Windows/Unix compatibility
+                imgPath = imgPath.replace(/\\/g, '/');
+
+                // Extract relative path from static
+                const staticIndex = imgPath.indexOf('static/');
+                if (staticIndex !== -1) {
+                    imgPath = '/' + imgPath.substring(staticIndex);
+                }
+                // Ensure leading slash
+                if (!imgPath.startsWith('/')) {
+                    imgPath = '/' + imgPath;
+                }
             }
 
             const imgElement = document.getElementById('patient-photo');
