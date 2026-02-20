@@ -8,6 +8,7 @@ from datetime import datetime
 import contextlib
 import json
 import sys
+import gc
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -66,35 +67,65 @@ def get_eye_cascade():
         eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
     return eye_cascade
 
-def get_gender_model():
-    global gender_model
-    if gender_model is None and os.path.exists("keras_model.h5"):
-        try:
-            from tf_keras.models import load_model
-            print("⏳ Loading Gender Model (TensorFlow)...")
-            sys.stdout.flush()
-            gender_model = load_model("keras_model.h5", compile=False)
-            print("✅ Gender Model loaded.")
-            sys.stdout.flush()
-        except Exception as e:
-            print(f"❌ Error loading gender model: {e}")
-            sys.stdout.flush()
-    return gender_model
+def analyze_face_image(image_path):
+    """Analyze face image for gender and emotion with minimal memory footprint"""
+    results = {}
+    try:
+        from tf_keras import backend as K
+        from tf_keras.models import load_model
 
-def get_emotion_model():
-    global emotion_model
-    if emotion_model is None and os.path.exists("keras_modelemo.h5"):
-        try:
-            from tf_keras.models import load_model
-            print("⏳ Loading Emotion Model (TensorFlow)...")
+        img = cv2.imread(image_path)
+        if img is None:
+            return {'error': 'Could not read image'}
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        face_cascade_local = get_face_cascade()
+        faces = face_cascade_local.detectMultiScale(gray, 1.3, 5)
+
+        if len(faces) == 0:
+             return {'warning': 'No face detected'}
+        
+        # Process the largest face
+        (x, y, w, h) = max(faces, key=lambda f: f[2] * f[3])
+        face_roi = img[y:y+h, x:x+w]
+        
+        # Preprocess for models
+        face_resized = cv2.resize(face_roi, (224, 224))
+        input_image = np.asarray(face_resized, dtype=np.float32).reshape(1, 224, 224, 3)
+        input_image = (input_image / 127.5) - 1
+        
+        # 1. Gender Prediction
+        if os.path.exists("keras_model.h5"):
+            print("⏳ Loading Gender Model...")
             sys.stdout.flush()
-            emotion_model = load_model("keras_modelemo.h5", compile=False)
-            print("✅ Emotion Model loaded.")
+            model = load_model("keras_model.h5", compile=False)
+            gender_pred = model.predict(input_image, verbose=0)
+            results['gender'] = GENDER_CLASSES[np.argmax(gender_pred)]
+            print("✅ Gender Predicted. Unloading...")
+            del model
+            K.clear_session()
+            gc.collect()
             sys.stdout.flush()
-        except Exception as e:
-            print(f"❌ Error loading emotion model: {e}")
+
+        # 2. Emotion Prediction
+        if os.path.exists("keras_modelemo.h5"):
+            print("⏳ Loading Emotion Model...")
             sys.stdout.flush()
-    return emotion_model
+            model = load_model("keras_modelemo.h5", compile=False)
+            emotion_pred = model.predict(input_image, verbose=0)
+            results['emotion'] = EMOTION_CLASSES[np.argmax(emotion_pred)]
+            print("✅ Emotion Predicted. Unloading...")
+            del model
+            K.clear_session()
+            gc.collect()
+            sys.stdout.flush()
+            
+        return results
+
+    except Exception as e:
+        print(f"Face analysis error: {str(e)}")
+        sys.stdout.flush()
+        return {'error': str(e)}
 
 @app.route('/')
 def index():
@@ -232,50 +263,6 @@ def analyze():
             os.remove(face_image_path)
         if audio_file_path and os.path.exists(audio_file_path):
             os.remove(audio_file_path)
-
-def analyze_face_image(image_path):
-    """Analyze face image for gender and emotion"""
-    results = {}
-    try:
-        img = cv2.imread(image_path)
-        if img is None:
-            return {'error': 'Could not read image'}
-
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        face_cascade_local = get_face_cascade()
-        faces = face_cascade_local.detectMultiScale(gray, 1.3, 5)
-
-        if len(faces) == 0:
-             return {'warning': 'No face detected'}
-        
-        # Process the largest face
-        (x, y, w, h) = max(faces, key=lambda f: f[2] * f[3])
-        face_roi = img[y:y+h, x:x+w]
-        
-        # Preprocess for models
-        face_resized = cv2.resize(face_roi, (224, 224))
-        input_image = np.asarray(face_resized, dtype=np.float32).reshape(1, 224, 224, 3)
-        input_image = (input_image / 127.5) - 1
-        
-        # Gender
-        model_gender = get_gender_model()
-        if model_gender:
-            gender_pred = model_gender.predict(input_image, verbose=0)
-            gender_idx = np.argmax(gender_pred)
-            results['gender'] = GENDER_CLASSES[gender_idx]
-        
-        # Emotion
-        model_emotion = get_emotion_model()
-        if model_emotion:
-            emotion_pred = model_emotion.predict(input_image, verbose=0)
-            emotion_idx = np.argmax(emotion_pred)
-            results['emotion'] = EMOTION_CLASSES[emotion_idx]
-            
-        return results
-
-    except Exception as e:
-        print(f"Face analysis error: {str(e)}")
-        return {'error': str(e)}
 
 def analyze_voice_file(audio_path):
     """Analyze audio file for features"""
