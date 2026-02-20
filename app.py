@@ -51,9 +51,41 @@ def load_models():
     except Exception as e:
         print(f"❌ Error loading models: {str(e)}")
 
-# Load models on startup
-with app.app_context():
-    load_models()
+# Avoid loading models on startup to prevent timeout on Render
+# with app.app_context():
+#     load_models()
+
+def get_face_cascade():
+    global face_cascade
+    if face_cascade is None:
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    return face_cascade
+
+def get_eye_cascade():
+    global eye_cascade
+    if eye_cascade is None:
+        eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
+    return eye_cascade
+
+def get_gender_model():
+    global gender_model
+    if gender_model is None and os.path.exists("keras_model.h5"):
+        try:
+            gender_model = load_model("keras_model.h5", compile=False)
+            print("✅ Gender Model loaded.")
+        except Exception as e:
+            print(f"❌ Error loading gender model: {e}")
+    return gender_model
+
+def get_emotion_model():
+    global emotion_model
+    if emotion_model is None and os.path.exists("keras_modelemo.h5"):
+        try:
+            emotion_model = load_model("keras_modelemo.h5", compile=False)
+            print("✅ Emotion Model loaded.")
+        except Exception as e:
+            print(f"❌ Error loading emotion model: {e}")
+    return emotion_model
 
 @app.route('/')
 def index():
@@ -77,7 +109,8 @@ def detect_face():
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         
         # Detect faces
-        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+        face_cascade_local = get_face_cascade()
+        faces = face_cascade_local.detectMultiScale(gray, 1.3, 5)
         face_detected = len(faces) > 0
         eyes_open = False
         
@@ -85,7 +118,8 @@ def detect_face():
         if face_detected:
             (x, y, w, h) = max(faces, key=lambda f: f[2] * f[3])
             roi_gray = gray[y:y+h, x:x+w]
-            eyes = eye_cascade.detectMultiScale(roi_gray, 1.1, 3)
+            eye_cascade_local = get_eye_cascade()
+            eyes = eye_cascade_local.detectMultiScale(roi_gray, 1.1, 3)
             # Filter minimal size to avoid noise
             eyes = [e for e in eyes if e[2]*e[3] > 100] 
             if len(eyes) >= 2:
@@ -199,7 +233,8 @@ def analyze_face_image(image_path):
             return {'error': 'Could not read image'}
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+        face_cascade_local = get_face_cascade()
+        faces = face_cascade_local.detectMultiScale(gray, 1.3, 5)
 
         if len(faces) == 0:
              return {'warning': 'No face detected'}
@@ -214,14 +249,16 @@ def analyze_face_image(image_path):
         input_image = (input_image / 127.5) - 1
         
         # Gender
-        if gender_model:
-            gender_pred = gender_model.predict(input_image, verbose=0)
+        model_gender = get_gender_model()
+        if model_gender:
+            gender_pred = model_gender.predict(input_image, verbose=0)
             gender_idx = np.argmax(gender_pred)
             results['gender'] = GENDER_CLASSES[gender_idx]
         
         # Emotion
-        if emotion_model:
-            emotion_pred = emotion_model.predict(input_image, verbose=0)
+        model_emotion = get_emotion_model()
+        if model_emotion:
+            emotion_pred = model_emotion.predict(input_image, verbose=0)
             emotion_idx = np.argmax(emotion_pred)
             results['emotion'] = EMOTION_CLASSES[emotion_idx]
             
